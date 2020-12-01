@@ -1,6 +1,6 @@
 #Output0	None
 #Output1	dataset/develop.txt
-#Output2	dataset/develop.txt
+#Output2	dataset/test.txt
 #Output3	honduras
 #Output4	output.txt
 #Output5	300000
@@ -19,11 +19,11 @@
 #Output18	2067.1069778252127
 #Output19	0.06
 #Output20	1390.8376714752985
-#Output21	None
-#Output22	None
-#Output23	None
-#Output24	None
-#Output25	None
-#Output26	None
+#Output21	207574
+#Output22	207574
+#Output23	7.574233252013611e-06
+#Output24	3.2839317091060648e-06
+#Output25	175980
+#Output26	1500.1407479014704
 #Output27	None
 #Output28	None
