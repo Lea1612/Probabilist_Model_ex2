@@ -1,7 +1,7 @@
 import sys
 from collections import Counter
 import math
-
+from datetime import datetime
 
 vocabulary_size = 300000
 # Read the file, only the sentences and not the lines with topics that start with <train or <set
@@ -20,7 +20,7 @@ def string_words(file_name):
     return words_sequence
 
 def write_output(output_filename, output):
-    with open(output_filename,"w") as f:
+    with open(output_filename, "w") as f:
         for i, row in enumerate(output):
             f.write(f"#Output{i}\t{row}\n")
     print("\n".join([str(i) for i in output]))
@@ -37,12 +37,12 @@ class LidstoneModel(object):
         self.test_set_size = len(test)
         self.different_events_counter_train = len(self.training_event_occuration)
 
-    def calculate_prob(self, word=None):
+    def calculate_prob(self, word='unseen_word'):
         word_count = self.training_event_occuration[word]
         return word_count / self.training_set_size
 
-    def calculate_prob_lambda(self, word=None, lambda_var=0.1):
-        word_count = self.training_event_occuration[word]
+    def calculate_prob_lambda(self, word='unseen_word', lambda_var=0.1, frequency=None):
+        word_count = self.training_event_occuration[word] if word else frequency
         return float(word_count + lambda_var) / \
                (self.training_set_size + lambda_var * vocabulary_size)
 
@@ -53,7 +53,6 @@ class LidstoneModel(object):
     def lidstone_perplexity(self, dataset, dataset_size, lambda_var=0.01):
         sigma = sum([math.log2(self.calculate_prob_lambda(w, lambda_var)) for w in dataset])
         return 2**((-1 / dataset_size) * sigma)
-
 
     def best_lambda(self):
         perplexity_values = []
@@ -68,39 +67,53 @@ class LidstoneModel(object):
 
 class HeldOut(object):
 
-    def __init__(self, ho_train, heldout):
-        self.ho_train = ho_train
-        self.heldout = heldout
+    def __init__(self, ho_train, heldout, test_words):
+        self.ho_train = set(ho_train)
+        self.heldout = set(heldout)
         self.ho_training_occuration = Counter(ho_train)
+
         self.ho_heldout_occuration = Counter(heldout)
+        self.test = test_words
         self.ho_training_size = len(ho_train)
         self.ho_heldout_size = len(heldout)
-        
-    def heldout_proba(self, word = None) :
+        self.test_size = len(test_words)
+
+    def calculate_N_r(self, word, frequency):
         same_frequence_words_train = []
-        word_occuration_train = self.ho_training_occuration[word]
+        word_occuration_train = self.ho_training_occuration[word] if word else frequency
 
         if word_occuration_train > 0:
+            # print("occured in train")
             for w, count in self.ho_training_occuration.items():
                 if count == word_occuration_train:
                     same_frequence_words_train.append(w)
 
             N_r = len(same_frequence_words_train)
 
+        else:
+            # print("NOT occured in train")
+            same_frequence_words_train = [w for w in self.heldout if w not in self.ho_train]
+            N_r = vocabulary_size - len(set(self.ho_train))
 
-        else: 
-            same_frequence_words_train = [word for word in self.heldout if word not in self.ho_train]
-            N_r = vocabulary_size - self.ho_training_size
+        return N_r, same_frequence_words_train
+
+    def heldout_proba(self, word='unseen_word',frequency=None):
+        # print(f"{datetime.now()}: Heldout prob start "+word)
+        N_r, same_frequence_words_train = self.calculate_N_r(word, frequency)
 
 
         T_r = sum([self.ho_heldout_occuration[word] for word in same_frequence_words_train])
         f_emp = T_r / N_r
-
+        # print(f"{datetime.now()}: Heldout prob finish ")
         return f_emp / self.ho_heldout_size
+
+    def heldout_perplexity(self, dataset, dataset_size):
+        sigma = sum([math.log2(self.heldout_proba(w)) for w in dataset])
+        return 2**((-1 / dataset_size) * sigma)
 
 
 def main():
-    output = [None]*29
+    output = [None]*30
     dev_set_file_name = "dataset/develop.txt"   # sys.argv[1]
     test_set_file_name = "dataset/test.txt"  # sys.argv[2]
     input_word = "honduras"  # sys.argv[3]
@@ -140,14 +153,11 @@ def main():
     
     lambda_var = [0.01, 0.1, 1.0]
 
-    
+    print(f"{datetime.now()}: Output16")
     output[16] = lidstone_model.lidstone_perplexity(lidstone_model.validation, lidstone_model.validation_set_size, lambda_var[0]) # Perplexity on valid. lambda = 0.01
     output[17] = lidstone_model.lidstone_perplexity(lidstone_model.validation, lidstone_model.validation_set_size, lambda_var[1]) # lambda = 0.1
     output[18] = lidstone_model.lidstone_perplexity(lidstone_model.validation, lidstone_model.validation_set_size, lambda_var[2]) # lambda = 1
-
-    # output[20] = min(output[16:19]) # minimized perplexity on valid
-    # output[19] = lambda_var[output[16:19].index(output[20])] # lambda that minimizes perplexity on valid
-    
+    print(f"{datetime.now()}: Output19")
     output[19] = lidstone_model.best_lambda()[1] # lambda that minimizes perplexity on valid
     output[20] = lidstone_model.best_lambda()[0] # minimized perplexity on valid
 
@@ -157,25 +167,38 @@ def main():
     heldout_training = train_words[:threshold_heldout]
     heldout = train_words[threshold_heldout:]
 
-    held_out = HeldOut(heldout_training, heldout)
-
+    held_out = HeldOut(heldout_training, heldout, test_words)
+    print(f"{datetime.now()}: Output21")
     output[21] = held_out.ho_training_size # Nb of events in train
     output[22] = held_out.ho_heldout_size # Nb of events in heldout
-
-    output[23] = held_out.heldout_proba(word = input_word) # Heldout on input word
+    print(f"{datetime.now()}: Output23")
+    output[23] = held_out.heldout_proba(word=input_word) # Heldout on input word
+    print(f"{datetime.now()}: Output24")
     output[24] = held_out.heldout_proba() # Pb for word = None ???
 
     ### Debug ###
 
     ### 5. Models evaluation on test set ###
-    
+    print(f"{datetime.now()}: Output25")
     output[25] = len(test_words) # Nb of events in test
-
+    print(f"{datetime.now()}: Output26")
     output[26] = lidstone_model.lidstone_perplexity(lidstone_model.test, lidstone_model.test_set_size, output[19])
+    print(f"{datetime.now()}: Output27")
+    output[27] = held_out.heldout_perplexity(held_out.test, held_out.test_size)
+    print(f"{datetime.now()}: Output28")
+    output[28] = "L" if output[26] < output[27] else "H"
+    matrix = []
+    for i in range(9):
+        f_lambda = lidstone_model.calculate_prob_lambda(word=None,
+                                                        lambda_var=output[19],
+                                                        frequency=i)*lidstone_model.training_set_size
+        f_h = held_out.heldout_proba(word=None, frequency=i)
+        N_r, same_frequence_words_train = held_out.calculate_N_r(word=None, frequency=i)
+        t_r = sum([held_out.ho_heldout_occuration[word] for word in same_frequence_words_train])
+        matrix.append(f"{i}\t{f_lambda}\t{f_h}\t{N_r}\t{t_r}")
 
-    print('he')
+    output[29] = "\n".join(matrix)
     write_output(output_filename, output)
-
 
 
 if __name__ == "__main__":
