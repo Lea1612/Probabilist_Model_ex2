@@ -33,19 +33,22 @@ def write_output(output_filename, output):
 # Lidstone model on train and on validation sets.
 class LidstoneModel(object):
 
-    def __init__(self, train, val, test):
+    def __init__(self, train, val=None, test=None):
         self.training_event_occuration = Counter(train)
-        self.validation_event_occuration = Counter(val)
-        self.validation = val
         self.test = test
         self.training_set_size = len(train)
-        self.validation_set_size = len(val)
-        self.test_set_size = len(test)
         self.different_events_counter_train = len(self.training_event_occuration)
+        if val:
+            self.validation_event_occuration = Counter(val)
+            self.validation_set_size = len(val)
+            self.validation = val
+        if test:
+            self.test_set_size = len(test)
+
 
     def calculate_prob(self, word='unseen_word'):
         word_count = self.training_event_occuration[word]
-        return word_count / self.training_set_size
+        return float(word_count) / float(self.training_set_size)
 
     def calculate_prob_lambda(self, word='unseen_word', lambda_var=0.1, frequency=None):
         word_count = self.training_event_occuration[word] if word else frequency
@@ -70,23 +73,24 @@ class LidstoneModel(object):
 # Held Out model with the divison of the data set in 2 halves. One to train and one to held out.
 class HeldOut(object):
 
-    def __init__(self, ho_train, heldout, test_words):
+    def __init__(self, ho_train, heldout, test_words=None):
         self.ho_train = set(ho_train)
         self.heldout = set(heldout)
         self.ho_training_occuration = Counter(ho_train)
 
         self.ho_heldout_occuration = Counter(heldout)
-        self.test = test_words
+
         self.ho_training_size = len(ho_train)
         self.ho_heldout_size = len(heldout)
-        self.test_size = len(test_words)
+        if test_words:
+            self.test = test_words
+            self.test_size = len(test_words)
 
     def calculate_N_r(self, word, frequency):
         same_frequence_words_train = []
         word_occuration_train = self.ho_training_occuration[word] if word else frequency
 
         if word_occuration_train > 0:
-            # print("occured in train")
             for w, count in self.ho_training_occuration.items():
                 if count == word_occuration_train:
                     same_frequence_words_train.append(w)
@@ -197,6 +201,31 @@ def main():
     output[24] = held_out.heldout_proba() # Pb for unseen words
 
     ### Debug ###
+    lidstone_check = LidstoneModel(train_words)
+    prob = lidstone_check.calculate_prob()
+    for word in lidstone_check.training_event_occuration.keys():
+        prob += lidstone_check.calculate_prob(word)
+    if round(prob, 5) == 1.0:
+        print("Lidstone test is pass")
+    else:
+        print("Held out test failed")
+    held_out_check = HeldOut(train_words, ['xxxx', 'yyy', 'zzzz'])
+    prob = held_out_check.heldout_proba()*(vocabulary_size - len(held_out_check.ho_train))
+    for word in held_out_check.ho_training_occuration.keys():
+        prob += held_out_check.heldout_proba(word=word)
+    if round(prob, 5) == 1.0:
+        print("Held out all unknown words is pass")
+    else:
+        print("Held out test failed")
+
+    held_out_check = HeldOut(train_words, ['xxxx', 'unsworth', 'for'])
+    prob = held_out_check.heldout_proba() * (vocabulary_size - len(held_out_check.ho_train))
+    for word in held_out_check.ho_training_occuration.keys():
+        prob += held_out_check.heldout_proba(word=word)
+    if round(prob, 5) == 1.0:
+        print("Held out test some words are know is pass")
+    else:
+        print("Held out test failed")
 
     ### 5. Models evaluation on test set ###
     output[25] = len(test_words) # Nb of events in test
