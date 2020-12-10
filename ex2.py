@@ -1,4 +1,4 @@
-# Lea Fanny Setruk  Vladimir Balagula   345226179   111
+# Lea Fanny Setruk  Vladimir Balagula   345226179   323792770
 
 import sys
 from collections import Counter
@@ -23,7 +23,7 @@ def string_words(file_name):
 # Write the output with the right format
 def write_output(output_filename, output):
     with open(output_filename, "w") as f:
-        f.write(f"{'#Students'}\t{'Lea Fanny Setruk'}\t{'Vladimir Balagula'}\t{'345226179'}\t{'111'}\n")
+        f.write(f"{'#Students'}\t{'Lea Fanny Setruk'}\t{'Vladimir Balagula'}\t{'345226179'}\t{'323792770'}\n")
         for i, row in enumerate(output):
             if i:
                 f.write(f"#Output{i}\t{row}\n")
@@ -202,13 +202,13 @@ def main():
 
     ### Debug ###
     lidstone_check = LidstoneModel(train_words)
-    prob = lidstone_check.calculate_prob()
+    prob = lidstone_check.calculate_prob()*(vocabulary_size - len(lidstone_check.training_event_occuration))
     for word in lidstone_check.training_event_occuration.keys():
         prob += lidstone_check.calculate_prob(word)
     if round(prob, 5) == 1.0:
         print("Lidstone test is pass")
     else:
-        print("Held out test failed")
+        print("Lidstone out test failed")
     held_out_check = HeldOut(train_words, ['xxxx', 'yyy', 'zzzz'])
     prob = held_out_check.heldout_proba()*(vocabulary_size - len(held_out_check.ho_train))
     for word in held_out_check.ho_training_occuration.keys():
@@ -231,9 +231,7 @@ def main():
     output[25] = len(test_words) # Nb of events in test
  
     output[26] = lidstone_model.lidstone_perplexity(lidstone_model.test, lidstone_model.test_set_size, output[19])
-    print(f"{datetime.now()}: Output27")
     output[27] = held_out.heldout_perplexity(held_out.test, held_out.test_size)
-    print(f"{datetime.now()}: Output28")
 
     output[28] = "L" if output[26] < output[27] else "H"
 
