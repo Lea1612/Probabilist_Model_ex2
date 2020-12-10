@@ -25,8 +25,7 @@ def write_output(output_filename, output):
     with open(output_filename, "w") as f:
         f.write(f"{'#Students'}\t{'Lea Fanny Setruk'}\t{'Vladimir Balagula'}\t{'345226179'}\t{'323792770'}\n")
         for i, row in enumerate(output):
-            if i:
-                f.write(f"#Output{i}\t{row}\n")
+            f.write(f"#Output{i+1}\t{row}\n")
     print("\n".join([str(i) for i in output if i]))
 
 
@@ -124,7 +123,7 @@ def create_table(lidstone_model, held_out, output):
     for i in range(10):
 
         f_lambda = lidstone_model.calculate_prob_lambda(word=None,
-                                                        lambda_var=output[19],
+                                                        lambda_var=output[18],
                                                         frequency=i)*lidstone_model.training_set_size
 
         f_h = held_out.heldout_proba(word=None, frequency=i) * held_out.ho_training_size
@@ -139,52 +138,52 @@ def create_table(lidstone_model, held_out, output):
 
 
 def main():
-    output = [None for i in range(1,31)]
-    dev_set_file_name = "dataset/develop.txt"   # sys.argv[1]
-    test_set_file_name = "dataset/test.txt"  # sys.argv[2]
-    input_word = "honduras"  # sys.argv[3]
-    output_filename = "output.txt"  # sys.argv[4]
+    output = []
+    dev_set_file_name = sys.argv[1]
+    test_set_file_name = sys.argv[2]
+    input_word = sys.argv[3]
+    output_filename = sys.argv[4]
 
     train_words = string_words(dev_set_file_name)   # Sequence of events from the dev set
     test_words = string_words(test_set_file_name)
 
-### 1. Init ###
+    ### 1. Init ###
 
-    output[1] = dev_set_file_name
-    output[2] = test_set_file_name
-    output[3] = input_word
-    output[4] = output_filename
-    output[5] = vocabulary_size
-    output[6] = 1 / vocabulary_size  # Uniform proba. All events have same proba to occur.
+    output.append(dev_set_file_name)
+    output.append(test_set_file_name)
+    output.append(input_word)
+    output.append(output_filename)
+    output.append(vocabulary_size)
+    output.append(1 / vocabulary_size)  # Uniform proba. All events have same proba to occur.
 
-### 2. Dvlpt set prepocessing ###
+    ### 2. Dvlpt set prepocessing ###
 
-    output[7] = len(train_words) 
+    output.append(len(train_words))
 
-### 3. Lidstone model training ###
+    ### 3. Lidstone model training ###
 
     threshold = round(0.9 * len(train_words))
     training_set = train_words[:threshold]  # The first 90% to train
     validation_set = train_words[threshold:]  # The last 10% to validation
     lidstone_model = LidstoneModel(training_set, validation_set, test_words)
 
-    output[8] = lidstone_model.validation_set_size     # Nb of events in validation
-    output[9] = lidstone_model.training_set_size       # Nb of events in training set
-    output[10] = lidstone_model.different_events_counter_train # Nb of different events in train
-    output[11] = lidstone_model.training_event_occuration[input_word]  # Nb of times the input_word occurs in train
-    output[12] = lidstone_model.calculate_prob(input_word) # MLE train
-    output[13] = lidstone_model.calculate_prob() #MLE on unseen words. word = None 
-    output[14] = lidstone_model.calculate_prob_lambda(word=input_word) # Proba Lidstone with lambda = 0.1
-    output[15] = lidstone_model.calculate_prob_lambda() # On unseen words. word = None
+    output.append(lidstone_model.validation_set_size)     # Nb of events in validation
+    output.append(lidstone_model.training_set_size)       # Nb of events in training set
+    output.append(lidstone_model.different_events_counter_train) # Nb of different events in train
+    output.append(lidstone_model.training_event_occuration[input_word])  # Nb of times the input_word occurs in train
+    output.append(lidstone_model.calculate_prob(input_word)) # MLE train
+    output.append(lidstone_model.calculate_prob()) #MLE on unseen words. word = None
+    output.append(lidstone_model.calculate_prob_lambda(word=input_word)) # Proba Lidstone with lambda = 0.1
+    output.append(lidstone_model.calculate_prob_lambda()) # On unseen words. word = None
     
     lambda_var = [0.01, 0.1, 1.0]
 
-    output[16] = lidstone_model.lidstone_perplexity(lidstone_model.validation, lidstone_model.validation_set_size, lambda_var[0]) # Perplexity on valid. lambda = 0.01
-    output[17] = lidstone_model.lidstone_perplexity(lidstone_model.validation, lidstone_model.validation_set_size, lambda_var[1]) # lambda = 0.1
-    output[18] = lidstone_model.lidstone_perplexity(lidstone_model.validation, lidstone_model.validation_set_size, lambda_var[2]) # lambda = 1
+    output.append(lidstone_model.lidstone_perplexity(lidstone_model.validation, lidstone_model.validation_set_size, lambda_var[0])) # Perplexity on valid. lambda = 0.01
+    output.append(lidstone_model.lidstone_perplexity(lidstone_model.validation, lidstone_model.validation_set_size, lambda_var[1])) # lambda = 0.1
+    output.append(lidstone_model.lidstone_perplexity(lidstone_model.validation, lidstone_model.validation_set_size, lambda_var[2])) # lambda = 1
  
-    output[19] = lidstone_model.best_lambda()[1] # lambda that minimizes perplexity on valid
-    output[20] = lidstone_model.best_lambda()[0] # minimized perplexity on valid
+    output.append(lidstone_model.best_lambda()[1]) # lambda that minimizes perplexity on valid
+    output.append(lidstone_model.best_lambda()[0]) # minimized perplexity on valid
 
     ### 4.  Held out training ###
 
@@ -194,13 +193,14 @@ def main():
 
     held_out = HeldOut(heldout_training, heldout, test_words)
 
-    output[21] = held_out.ho_training_size # Nb of events in train
-    output[22] = held_out.ho_heldout_size # Nb of events in heldout
+    output.append(held_out.ho_training_size) # Nb of events in train
+    output.append(held_out.ho_heldout_size) # Nb of events in heldout
 
-    output[23] = held_out.heldout_proba(word=input_word) # Heldout on input word
-    output[24] = held_out.heldout_proba() # Pb for unseen words
+    output.append(held_out.heldout_proba(word=input_word)) # Heldout on input word
+    output.append(held_out.heldout_proba())  # Pb for unseen words
 
     ### Debug ###
+
     lidstone_check = LidstoneModel(train_words)
     prob = lidstone_check.calculate_prob()*(vocabulary_size - len(lidstone_check.training_event_occuration))
     for word in lidstone_check.training_event_occuration.keys():
@@ -228,16 +228,16 @@ def main():
         print("Held out test failed")
 
     ### 5. Models evaluation on test set ###
-    output[25] = len(test_words) # Nb of events in test
+    output.append(len(test_words))  # Nb of events in test
  
-    output[26] = lidstone_model.lidstone_perplexity(lidstone_model.test, lidstone_model.test_set_size, output[19])
-    output[27] = held_out.heldout_perplexity(held_out.test, held_out.test_size)
+    output.append(lidstone_model.lidstone_perplexity(lidstone_model.test, lidstone_model.test_set_size, output[18]))
+    output.append(held_out.heldout_perplexity(held_out.test, held_out.test_size))
 
-    output[28] = "L" if output[26] < output[27] else "H"
+    output.append("L" if output[25] < output[26] else "H")
 
     ### Table ###
 
-    output[29] = create_table(lidstone_model, held_out, output)
+    output.append(create_table(lidstone_model, held_out, output))
 
     write_output(output_filename, output)
 
