@@ -1,4 +1,4 @@
-# Lea Fanny Setruk  Vladimir Balagula   345226179   323792770
+# Lea Setruk  Vladimir Balagula  
 
 import sys
 from collections import Counter
