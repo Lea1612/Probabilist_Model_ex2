@@ -1,4 +1,4 @@
-#Students	Lea Fanny Setruk	Vladimir Balagula	345226179	323792770
+#Students	Lea Setruk	Vladimir Balagula	
 #Output1	dataset/develop.txt
 #Output2	dataset/test.txt
 #Output3	honduras
